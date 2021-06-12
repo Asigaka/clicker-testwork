@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,10 +16,12 @@ public class EnemiesSpawner : MonoBehaviour, ISpawner
     [SerializeField] private List<GameObject> _enemyList;  //Лист, в который будут добавляться заспауненые монстры
     [SerializeField] private GameObject _enemyObject;  //Префаб монстра
 
+    private List<int> _saveRecord = new List<int>();
+
     //Проверки bool бустеров
-    private static bool _isFreeze = false;   
+    private static bool _isFreeze = false;
     private static bool _isKillAllEnemies = false;
-   
+
     private bool _isLose = false;
 
     public static bool IsFreeze { get => _isFreeze; set => _isFreeze = value; }
@@ -69,13 +72,32 @@ public class EnemiesSpawner : MonoBehaviour, ISpawner
     {
         _isLose = true;
         //Записываем результат
-        if (PlayerPrefs.GetInt("Record") < GameSceneManager.GetTimer())
+
+        int i = 0;
+        while (PlayerPrefs.HasKey("Record" + i))
         {
-            PlayerPrefs.SetInt("Record", GameSceneManager.GetTimer());
+            _saveRecord.Add(PlayerPrefs.GetInt("Record" + i));
+            i++;
         }
 
+        int k = 0;
+        if (i == 0)
+        {
+            do 
+            {
+                _saveRecord.Add(GameSceneManager.GetTimer());
+                PlayerPrefs.SetInt("Record" + i, GameSceneManager.GetTimer());
+                PlayerPrefs.SetInt("Record" + i, _saveRecord[i]);
+            } while (_saveRecord[k] < GameSceneManager.GetTimer());
+        }
+
+        _saveRecord = (from record in _saveRecord
+                       orderby record descending
+                       select record).ToList();
+
         _thisGameRecordText.text += GameSceneManager.GetTimer().ToString() + " секунд";
-        _RecordText.text += PlayerPrefs.GetInt("Record").ToString() + " секунд";
+        _RecordText.text += _saveRecord[0] + " секунд";
+
         //Меняем активные панели
         _mainPanel.SetActive(false);
         _losePanel.SetActive(true);
